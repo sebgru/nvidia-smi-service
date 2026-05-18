@@ -1,5 +1,8 @@
 # nvidia-smi-service
 
+[![CI](https://github.com/sebgru/nvidia-smi-service/actions/workflows/docker-image.yml/badge.svg)](https://github.com/sebgru/nvidia-smi-service/actions/workflows/docker-image.yml)
+![GitHub](https://img.shields.io/github/license/sebgru/nvidia-smi-service.svg)
+
 A lightweight read-only HTTP API wrapping `nvidia-smi` for containerized agents. Query GPU stats (memory, utilization, temperature, PCIe info) as JSON over HTTP.
 
 Perfect for AI assistants, agentic systems, or monitoring tools that need GPU visibility but can't access `nvidia-smi` directly.
@@ -98,6 +101,34 @@ curl http://nvidia-smi-service:8765/health
 - **Strictly read-only**: no POST, PUT, PATCH, or DELETE endpoints
 - No system mutation, no GPU config changes
 - `nvidia-smi` is already read-only by design
+
+## CI/CD (GitHub Actions)
+
+Workflow files are in `workflows-to-activate/`. To enable:
+
+1. Copy the files into `.github/workflows/`
+   ```bash
+   mkdir -p .github/workflows
+   cp workflows-to-activate/*.yml .github/workflows/
+   git add .github/workflows/
+   git commit -m "Activate CI/CD workflows"
+   git push
+   ```
+
+2. **CI**: Runs on every push/PR — builds the Docker image
+3. **Publish**: Tag a version to publish to GitHub Container Registry:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+   → Image available at `ghcr.io/sebgru/nvidia-smi-service:latest`
+
+## Testing
+
+```bash
+# After starting the container:
+python3 tests/test_api.py
+```
 
 ## Requirements
 
