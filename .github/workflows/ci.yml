@@ -53,12 +53,16 @@ jobs:
           load: true
           tags: scan-target:ci
 
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          image-ref: scan-target:ci
-          format: table
-          exit-code: "1"       # Fail the job on findings
-          ignore-unfixed: true # Only report CVEs that have a fix available
-          severity: HIGH,CRITICAL
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            scan-target:ci
 
