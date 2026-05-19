@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Basic validation tests for the GPU monitor service."""
+
 import json
-import subprocess
 import sys
-import time
 import urllib.error
 import urllib.request
 
@@ -34,6 +33,7 @@ def check_ok(data):
 
 
 # --- Tests ---
+
 
 def test_health():
     data = fetch("/health")

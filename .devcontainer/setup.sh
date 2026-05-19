@@ -3,6 +3,10 @@
 # Safe to re-run; all steps are idempotent.
 set -euo pipefail
 
+# ── System packages ───────────────────────────────────────────────────────────
+echo "→ Installing system packages (vim)…"
+sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends vim
+
 # ── Dev tools ─────────────────────────────────────────────────────────────────
 echo "→ Installing dev tools (ruff, pytest)…"
 pip install --quiet ruff pytest

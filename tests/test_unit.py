@@ -25,7 +25,9 @@ _ALLOWED_QUERY_FIELDS = _mod._ALLOWED_QUERY_FIELDS
 # Matches the 12-field format produced by GPU_FIELDS:
 # index, name, pci_bus_id, mem.used, mem.total, util.gpu, util.mem,
 # temp, power, pcie.gen, pcie.width, fan
-_GPU_LINE = "0, NVIDIA GeForce RTX 4090, 00000000:01:00.0, 1024, 24576, 45, 30, 65, 120.5, 4, 16, 28"
+_GPU_LINE = (
+    "0, NVIDIA GeForce RTX 4090, 00000000:01:00.0, 1024, 24576, 45, 30, 65, 120.5, 4, 16, 28"
+)
 _PROC_LINE = "1234, python3, 00000000:01:00.0, 2048"
 
 

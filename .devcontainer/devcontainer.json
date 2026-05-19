@@ -36,8 +36,7 @@
                 "ms-python.pylance",
                 // Ruff: linter + formatter (matches CI)
                 "charliermarsh.ruff",
-                // Vim keybindings inside VS Code
-                "vscodevim.vim"
+                "github.vscode-github-actions"
             ],
             "settings": {
                 "terminal.integrated.defaultProfile.linux": "zsh",
