@@ -1,6 +1,6 @@
 # nvidia-smi-service
 
-[![CI](https://github.com/sebgru/nvidia-smi-service/actions/workflows/docker-image.yml/badge.svg)](https://github.com/sebgru/nvidia-smi-service/actions/workflows/docker-image.yml)
+[![CI](https://github.com/sebgru/nvidia-smi-service/actions/workflows/ci.yml/badge.svg)](https://github.com/sebgru/nvidia-smi-service/actions/workflows/ci.yml)
 ![GitHub](https://img.shields.io/github/license/sebgru/nvidia-smi-service.svg)
 
 A lightweight read-only HTTP API wrapping `nvidia-smi` for containerized agents. Query GPU stats (memory, utilization, temperature, PCIe info) as JSON over HTTP.
@@ -14,12 +14,9 @@ Perfect for AI assistants, agentic systems, or monitoring tools that need GPU vi
 ```yaml
 services:
   nvidia-smi-service:
-    image: python:3.12-slim
+    build: .
     container_name: nvidia-smi-service
     restart: unless-stopped
-    command: ["python3", "/app/server.py"]
-    volumes:
-      - ./gpu-monitor.py:/app/server.py:ro
     ports:
       - "8765:8765"
     deploy:
@@ -104,19 +101,11 @@ curl http://nvidia-smi-service:8765/health
 
 ## CI/CD (GitHub Actions)
 
-Workflow files are in `workflows-to-activate/`. To enable:
+Workflows run automatically on every push and pull request to `main`.
 
-1. Copy the files into `.github/workflows/`
-   ```bash
-   mkdir -p .github/workflows
-   cp workflows-to-activate/*.yml .github/workflows/
-   git add .github/workflows/
-   git commit -m "Activate CI/CD workflows"
-   git push
-   ```
-
-2. **CI**: Runs on every push/PR — builds the Docker image
-3. **Publish**: Tag a version to publish to GitHub Container Registry:
+- **CI** (`ci.yml`): formatting check (ruff), linting (ruff), unit tests (pytest), and a Trivy container security scan that fails on any HIGH or CRITICAL CVE with a fix available
+- **docker build** (`docker-image.yml`): verifies the Docker image builds cleanly
+- **Publish** (`docker-publish.yml`): triggered on version tags — publishes to GitHub Container Registry:
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
@@ -126,7 +115,11 @@ Workflow files are in `workflows-to-activate/`. To enable:
 ## Testing
 
 ```bash
-# After starting the container:
+# Unit tests (no GPU or running container required):
+pip install pytest
+pytest tests/test_unit.py -v
+
+# Integration tests (requires a running container):
 python3 tests/test_api.py
 ```
 
