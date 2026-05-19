@@ -4,6 +4,7 @@ Exposes nvidia-smi data as JSON. No write/mutation endpoints.
 
 Usage: python3 server.py [--port 8765]
 """
+
 import http.server
 import json
 import os
@@ -12,6 +13,84 @@ import sys
 import urllib.parse
 
 PORT = int(os.environ.get("GPU_MONITOR_PORT", "8765"))
+
+# Allowlist of valid nvidia-smi --query-gpu field names.
+# The /query endpoint validates user input against this set so that
+# arbitrary strings are never forwarded to the subprocess argument.
+_ALLOWED_QUERY_FIELDS = frozenset(
+    (
+        # identity
+        "index",
+        "name",
+        "uuid",
+        "serial",
+        # PCI
+        "pci.bus_id",
+        "pci.bus",
+        "pci.device",
+        "pci.device_id",
+        "pci.sub_device_id",
+        "pci.domain",
+        # firmware
+        "driver_version",
+        "vbios_version",
+        # memory
+        "memory.total",
+        "memory.free",
+        "memory.used",
+        # utilization
+        "utilization.gpu",
+        "utilization.memory",
+        "utilization.encoder",
+        "utilization.decoder",
+        # thermals / power
+        "temperature.gpu",
+        "temperature.memory",
+        "power.draw",
+        "power.limit",
+        "power.default_limit",
+        "power.min_limit",
+        "power.max_limit",
+        "power.management",
+        "power.state",
+        # clocks
+        "clocks.gr",
+        "clocks.sm",
+        "clocks.mem",
+        "clocks.video",
+        "clocks.max.gr",
+        "clocks.max.sm",
+        "clocks.max.mem",
+        # PCIe
+        "pcie.link.gen.current",
+        "pcie.link.gen.max",
+        "pcie.link.width.current",
+        "pcie.link.width.max",
+        # misc
+        "fan.speed",
+        "timestamp",
+        "accounting.mode",
+        "display_mode",
+        "display_active",
+        "persistence_mode",
+        "ecc.mode.current",
+        "ecc.mode.pending",
+    )
+)
+
+
+def _int_or_0(v: str) -> int:
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return 0
+
+
+def _float_or_0(v: str) -> float:
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return 0.0
 
 
 def run_nvidia_smi(*args):
@@ -30,7 +109,7 @@ def run_nvidia_smi(*args):
         return {"error": str(e)}
 
 
-def parse_gpu_csv(output):
+def parse_gpu_csv(output: str) -> list:
     """Parse nvidia-smi CSV into list of GPU dicts."""
     gpus = []
     for line in output.strip().split("\n"):
@@ -40,37 +119,33 @@ def parse_gpu_csv(output):
         parts = [p.strip() for p in line.split(",")]
         if len(parts) < 11:
             continue
-        def int_or_0(v):
-            try: return int(v)
-            except: return 0
-        def float_or_0(v):
-            try: return float(v)
-            except: return 0.0
-        gpus.append({
-            "index": int_or_0(parts[0]),
-            "name": parts[1],
-            "pci_bus_id": parts[2],
-            "memory_mb": {
-                "used": int_or_0(parts[3]),
-                "total": int_or_0(parts[4]),
-                "free": int_or_0(parts[4]) - int_or_0(parts[3]),
-            },
-            "utilization_pct": {
-                "gpu": int_or_0(parts[5]),
-                "memory": int_or_0(parts[6]),
-            },
-            "temperature_c": int_or_0(parts[7]),
-            "power_w": float_or_0(parts[8]),
-            "pcie": {
-                "gen": parts[9],
-                "width": parts[10],
-            },
-            "fan_pct": parts[11] if len(parts) > 11 else "N/A",
-        })
+        gpus.append(
+            {
+                "index": _int_or_0(parts[0]),
+                "name": parts[1],
+                "pci_bus_id": parts[2],
+                "memory_mb": {
+                    "used": _int_or_0(parts[3]),
+                    "total": _int_or_0(parts[4]),
+                    "free": _int_or_0(parts[4]) - _int_or_0(parts[3]),
+                },
+                "utilization_pct": {
+                    "gpu": _int_or_0(parts[5]),
+                    "memory": _int_or_0(parts[6]),
+                },
+                "temperature_c": _int_or_0(parts[7]),
+                "power_w": _float_or_0(parts[8]),
+                "pcie": {
+                    "gen": parts[9],
+                    "width": parts[10],
+                },
+                "fan_pct": parts[11] if len(parts) > 11 else "N/A",
+            }
+        )
     return gpus
 
 
-def parse_process_csv(output):
+def parse_process_csv(output: str) -> list:
     """Parse nvidia-smi compute apps CSV."""
     procs = []
     for line in output.strip().split("\n"):
@@ -80,12 +155,14 @@ def parse_process_csv(output):
         parts = [p.strip() for p in line.split(",")]
         if len(parts) < 4:
             continue
-        procs.append({
-            "pid": parts[0],
-            "process_name": parts[1],
-            "gpu_bus_id": parts[2],
-            "used_memory_mb": parts[3],
-        })
+        procs.append(
+            {
+                "pid": parts[0],
+                "process_name": parts[1],
+                "gpu_bus_id": parts[2],
+                "used_memory_mb": parts[3],
+            }
+        )
     return procs
 
 
@@ -116,27 +193,31 @@ class GPUHandler(http.server.BaseHTTPRequestHandler):
         if path in ("", "/", "/health"):
             root = run_nvidia_smi("--version")
             if "error" in root:
-                return self._json({
+                return self._json(
+                    {
+                        "ok": True,
+                        "service": "gpu-monitor",
+                        "nvidia_smi": False,
+                        "error": root["error"],
+                    }
+                )
+            return self._json(
+                {
                     "ok": True,
                     "service": "gpu-monitor",
-                    "nvidia_smi": False,
-                    "error": root["error"],
-                })
-            return self._json({
-                "ok": True,
-                "service": "gpu-monitor",
-                "nvidia_smi": True,
-                "driver_version": root.get("output", "").strip(),
-                "endpoints": {
-                    "GET /": "this help",
-                    "GET /health": "health check",
-                    "GET /version": "nvidia driver + CUDA version",
-                    "GET /gpus": "all GPU stats as JSON array",
-                    "GET /gpu/{index}": "single GPU",
-                    "GET /processes": "running GPU processes",
-                    "GET /query?fields=...": "custom nvidia-smi query fields",
-                },
-            })
+                    "nvidia_smi": True,
+                    "driver_version": root.get("output", "").strip(),
+                    "endpoints": {
+                        "GET /": "this help",
+                        "GET /health": "health check",
+                        "GET /version": "nvidia driver + CUDA version",
+                        "GET /gpus": "all GPU stats as JSON array",
+                        "GET /gpu/{index}": "single GPU",
+                        "GET /processes": "running GPU processes",
+                        "GET /query?fields=...": "custom nvidia-smi query fields",
+                    },
+                }
+            )
 
         # Version
         if path == "/version":
@@ -153,7 +234,11 @@ class GPUHandler(http.server.BaseHTTPRequestHandler):
         # Single GPU
         if path.startswith("/gpu/"):
             idx = path.split("/")[-1]
-            data = run_nvidia_smi(f"--id={idx}", f"--query-gpu={GPU_FIELDS}", "--format=csv,noheader,nounits")
+            data = run_nvidia_smi(
+                f"--id={idx}",
+                f"--query-gpu={GPU_FIELDS}",
+                "--format=csv,noheader,nounits",
+            )
             if "error" in data:
                 return self._json(data)
             gpus = parse_gpu_csv(data["output"])
@@ -165,16 +250,20 @@ class GPUHandler(http.server.BaseHTTPRequestHandler):
         if path == "/processes":
             data = run_nvidia_smi(
                 "--query-compute-apps=pid,process_name,gpu_bus_id,used_memory",
-                "--format=csv,noheader,nounits"
+                "--format=csv,noheader,nounits",
             )
             if "error" in data:
                 return self._json(data)
             return self._json({"ok": True, "processes": parse_process_csv(data["output"])})
 
-        # Custom query
+        # Custom query — fields validated against known nvidia-smi allowlist
         if path == "/query":
             params = urllib.parse.parse_qs(parsed.query)
             fields = params.get("fields", [GPU_FIELDS])[0]
+            requested = [f.strip() for f in fields.split(",")]
+            invalid = [f for f in requested if f not in _ALLOWED_QUERY_FIELDS]
+            if invalid:
+                return self._error(400, f"Unknown query fields: {', '.join(invalid)}")
             data = run_nvidia_smi(f"--query-gpu={fields}", "--format=csv,noheader,nounits")
             if "error" in data:
                 return self._json(data)

@@ -1,6 +1,11 @@
 __pycache__/
 .git/
+.github/
+.devcontainer/
 .gitignore
 README.md
 LICENSE
 *.md
+tests/
+docker-compose.yml
+pyproject.toml

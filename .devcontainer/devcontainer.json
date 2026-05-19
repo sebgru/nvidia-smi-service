@@ -1,0 +1,67 @@
+{
+    "name": "nvidia-smi-service",
+    // ── Base image ───────────────────────────────────────────────────────────
+    // Standard Microsoft Python devcontainer — GPU not required for unit tests.
+    "image": "mcr.microsoft.com/devcontainers/python:3.12",
+    // ── Workspace ────────────────────────────────────────────────────────────
+    // Mount the repo at /workspace (instead of the default /workspaces/<name>).
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    "workspaceFolder": "/workspace",
+    // ── Host stubs ───────────────────────────────────────────────────────────
+    // Runs on the HOST before the container is created.
+    // Creates empty placeholder files/dirs if they don't already exist so the
+    // bind mounts below never fail for contributors who don't have these files.
+    // `touch -a` is a no-op if the file already exists — completely harmless.
+    "initializeCommand": "mkdir -p ~/.ssh && touch -a ~/.gitconfig ~/.vimrc ~/.profile",
+    // ── Personal dotfile mounts ──────────────────────────────────────────────
+    // Bound from the host user's $HOME into the container.
+    // For contributors who don't have these files, the empty stubs above are
+    // mounted instead — nothing breaks.
+    //
+    // .ssh is staged at /tmp/host-ssh; setup.sh copies it with the required
+    // 700/600 permissions (bind mounts can't change permissions).
+    "mounts": [
+        "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind",
+        "source=${localEnv:HOME}/.vimrc,target=/home/vscode/.vimrc,type=bind",
+        "source=${localEnv:HOME}/.profile,target=/home/vscode/.profile-host,type=bind,readonly=true",
+        "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly=true"
+    ],
+    // ── Post-create setup ────────────────────────────────────────────────────
+    "postCreateCommand": "bash /workspace/.devcontainer/setup.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Python language support + Pylance type checker
+                "ms-python.python",
+                "ms-python.pylance",
+                // Ruff: linter + formatter (matches CI)
+                "charliermarsh.ruff",
+                // Vim keybindings inside VS Code
+                "vscodevim.vim"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "terminal.integrated.profiles.linux": {
+                    "zsh": {
+                        "path": "/bin/zsh"
+                    }
+                },
+                "editor.tabSize": 2,
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.fixAll.ruff": "explicit",
+                        "source.organizeImports.ruff": "explicit"
+                    }
+                },
+                "ruff.enable": true
+            }
+        }
+    },
+    // Forward the service port in case you want to run the server inside the container.
+    "forwardPorts": [
+        8765
+    ]
+}

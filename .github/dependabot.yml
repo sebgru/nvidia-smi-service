@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned and up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Keep the base Docker image up to date
+  # Pin to a specific digest in Dockerfile to prevent tag-hijacking:
+  #   FROM python:3.12-slim@sha256:<digest>
+  # Dependabot will send PRs to update the digest when a new image is released.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev tools
+        run: pip install ruff pytest
+
+      # ── Formatting ────────────────────────────────────────────────────────
+      - name: Check formatting (ruff format)
+        run: ruff format --check .
+
+      # ── Linting ───────────────────────────────────────────────────────────
+      - name: Lint (ruff check)
+        run: ruff check .
+
+      # ── Unit tests (no GPU required) ──────────────────────────────────────
+      - name: Run unit tests
+        run: pytest tests/test_unit.py -v
+
+  # ── Container security scan ─────────────────────────────────────────────────
+  # Builds the image from the PR's Dockerfile and fails if any HIGH or CRITICAL
+  # CVE is found.  This catches malicious or vulnerable base image changes
+  # before they are merged.
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (local, no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: scan-target:ci
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: scan-target:ci
+          format: table
+          exit-code: "1"       # Fail the job on findings
+          ignore-unfixed: true # Only report CVEs that have a fix available
+          severity: HIGH,CRITICAL
+
