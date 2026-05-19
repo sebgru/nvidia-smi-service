@@ -11,6 +11,10 @@ FROM python:3.14-slim
 # nvidia-smi is provided by the host NVIDIA driver via the container toolkit.
 # No CUDA toolkit needed — this image has zero pip-installed dependencies.
 
+# Update all system packages to their latest security-patched versions
+# to minimize HIGH/CRITICAL CVEs (trivy CI gate with --ignore-unfixed).
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 COPY gpu-monitor.py /app/server.py
 RUN chmod +x /app/server.py
 
