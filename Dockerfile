@@ -1,4 +1,4 @@
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 # Alpine has a minimal package set (~0 high CVEs vs several in debian-slim).
 # Pin this image to a digest to prevent tag-hijacking supply-chain attacks:
 #   docker pull python:3.12-alpine
