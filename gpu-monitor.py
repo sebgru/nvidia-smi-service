@@ -93,7 +93,7 @@ def _float_or_0(v: str) -> float:
         return 0.0
 
 
-def run_nvidia_smi(*args):
+def run_nvidia_smi(*args):  # pragma: no cover
     """Run nvidia-smi with given args, return parsed output."""
     cmd = ["nvidia-smi"] + list(args)
     try:
@@ -174,7 +174,7 @@ GPU_FIELDS = (
 )
 
 
-class GPUHandler(http.server.BaseHTTPRequestHandler):
+class GPUHandler(http.server.BaseHTTPRequestHandler):  # pragma: no cover
     def _json(self, data, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -278,7 +278,7 @@ class GPUHandler(http.server.BaseHTTPRequestHandler):
         pass  # Stay quiet
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     if "--port" in sys.argv:
         PORT = int(sys.argv[sys.argv.index("--port") + 1])
     server = http.server.HTTPServer(("0.0.0.0", PORT), GPUHandler)

@@ -22,6 +22,14 @@ RUN chmod +x /app/server.py
 RUN adduser --disabled-password --gecos '' appuser
 USER appuser
 
-EXPOSE 8765
+ENV GPU_MONITOR_PORT=8765
+# Default port is 8765; override at runtime with -e GPU_MONITOR_PORT=<port>.
+# EXPOSE is intentionally omitted — a hardcoded value would be misleading here.
+
+# python3 is always available in this image; no curl needed.
+# The health endpoint returns 200 regardless of nvidia-smi availability,
+# so this check tests only that the HTTP server is responsive.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:${GPU_MONITOR_PORT}/health', timeout=4)" || exit 1
 
 CMD ["python3", "/app/server.py"]

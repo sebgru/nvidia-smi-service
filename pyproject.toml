@@ -15,4 +15,12 @@ docstring-code-format = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_unit.py"]
+python_files = ["test_unit.py", "test_docs.py"]
+
+[tool.coverage.run]
+omit = ["tests/*"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

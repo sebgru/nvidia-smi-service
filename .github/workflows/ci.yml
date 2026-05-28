@@ -18,7 +18,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dev tools
-        run: pip install ruff pytest
+        run: pip install ruff pytest pytest-cov
 
       # ── Formatting ────────────────────────────────────────────────────────
       - name: Check formatting (ruff format)
@@ -28,9 +28,15 @@ jobs:
       - name: Lint (ruff check)
         run: ruff check .
 
-      # ── Unit tests (no GPU required) ──────────────────────────────────────
-      - name: Run unit tests
-        run: pytest tests/test_unit.py -v
+      # ── Unit + docs tests with coverage ───────────────────────────────────
+      - name: Run tests with coverage
+        run: pytest tests/test_unit.py tests/test_docs.py -v --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
 
   # ── Container security scan ─────────────────────────────────────────────────
   # Builds the image from the PR's Dockerfile and fails if any HIGH or CRITICAL

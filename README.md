@@ -1,6 +1,7 @@
 # nvidia-smi-service
 
 [![CI](https://github.com/sebgru/nvidia-smi-service/actions/workflows/ci.yml/badge.svg)](https://github.com/sebgru/nvidia-smi-service/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/sebgru/nvidia-smi-service/graph/badge.svg)](https://codecov.io/gh/sebgru/nvidia-smi-service)
 ![GitHub](https://img.shields.io/github/license/sebgru/nvidia-smi-service.svg)
 
 A lightweight read-only HTTP API wrapping `nvidia-smi` for containerized agents. Query GPU stats (memory, utilization, temperature, PCIe info) as JSON over HTTP.
@@ -103,7 +104,7 @@ curl http://nvidia-smi-service:8765/health
 
 Workflows run automatically on every push and pull request to `main`.
 
-- **CI** (`ci.yml`): formatting check (ruff), linting (ruff), unit tests (pytest), and a Trivy container security scan that fails on any HIGH or CRITICAL CVE with a fix available
+- **CI** (`ci.yml`): formatting check (ruff), linting (ruff), unit tests + docs-consistency tests (pytest), coverage report with ≥ 80 % threshold, coverage upload to Codecov, and a Trivy container security scan that fails on any HIGH or CRITICAL CVE with a fix available
 - **docker build** (`docker-image.yml`): verifies the Docker image builds cleanly
 - **Publish** (`docker-publish.yml`): triggered on version tags — publishes to GitHub Container Registry:
    ```bash
@@ -116,8 +117,8 @@ Workflows run automatically on every push and pull request to `main`.
 
 ```bash
 # Unit tests (no GPU or running container required):
-pip install pytest
-pytest tests/test_unit.py -v
+pip install pytest pytest-cov
+pytest tests/test_unit.py tests/test_docs.py -v --cov=. --cov-report=term-missing
 
 # Integration tests (requires a running container):
 python3 tests/test_api.py
