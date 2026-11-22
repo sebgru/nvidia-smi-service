@@ -8,8 +8,9 @@ echo "→ Installing system packages (vim)…"
 sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends vim
 
 # ── Dev tools ─────────────────────────────────────────────────────────────────
-echo "→ Installing dev tools (ruff, pytest)…"
-pip install --quiet ruff pytest
+# Mirrors the toolchain CI uses (see .github/workflows/ci.yml).
+echo "→ Installing dev tools (ruff, pytest, pytest-cov)…"
+pip install --quiet ruff pytest pytest-cov
 
 # ── SSH keys ──────────────────────────────────────────────────────────────────
 # .ssh is staged at /tmp/host-ssh (bind-mounted read-only from the host).

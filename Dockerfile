@@ -15,6 +15,16 @@ FROM python:3.14-slim
 # to minimize HIGH/CRITICAL CVEs (trivy CI gate with --ignore-unfixed).
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
+# ── Remove pip / setuptools from the runtime image ──────────────────────────
+# This service has zero Python dependencies, so pip is never needed at runtime.
+# Trivy flags the libraries vendored inside pip (msgpack, urllib3) and the
+# bundled setuptools as HIGH CVEs; removing them removes both the vulnerable
+# code and the ongoing need to track those transitive versions.
+RUN python3 -c "\
+import pathlib, shutil, sysconfig; \
+sp = pathlib.Path(sysconfig.get_paths()['purelib']); \
+[shutil.rmtree(p, ignore_errors=True) for g in ('pip*', 'setuptools*', 'wheel*', 'pkg_resources*', '_distutils_hack*') for p in sp.glob(g)]"
+
 COPY gpu-monitor.py /app/server.py
 RUN chmod +x /app/server.py
 
