@@ -26,6 +26,31 @@ else
     echo "  No SSH keys found on host — skipping."
 fi
 
+# ── SSH config compatibility ─────────────────────────────────────────────────
+# The host ~/.ssh/config may use options added in newer OpenSSH releases
+# (e.g. `WarnWeakCrypto`, added in 10.2). An older client in the container
+# rejects the *entire* file with "Bad configuration option", which breaks every
+# git ssh operation (fetch/push). Comment out only the offending options, and
+# keep doing so until the config parses cleanly.
+if [ -f ~/.ssh/config ]; then
+    for _ in $(seq 1 20); do
+        err="$(ssh -F ~/.ssh/config -G github.com 2>&1 >/dev/null)" || true
+        case "$err" in
+            *"Bad configuration option:"*) ;;
+            *) break ;;
+        esac
+        opt="$(printf '%s\n' "$err" \
+            | sed -n 's/.*Bad configuration option: *\([A-Za-z][A-Za-z0-9]*\).*/\1/p' \
+            | head -1)"
+        [ -n "$opt" ] || break
+        before="$(md5sum ~/.ssh/config | cut -d' ' -f1)"
+        sed -i "s|^[[:space:]]*\(${opt}[[:space:]=]\)|# [devcontainer] '${opt}' unsupported by $(ssh -V 2>&1 | cut -d' ' -f1): \1|I" ~/.ssh/config
+        after="$(md5sum ~/.ssh/config | cut -d' ' -f1)"
+        [ "$before" = "$after" ] && break
+        echo "  Disabled unsupported ssh option: ${opt}"
+    done
+fi
+
 # ── GitHub CLI (gh) host login ───────────────────────────────────────────────
 # ~/.config/gh is bind-mounted from the host so the host's `gh` login is
 # reused as-is — no copy step and no re-authentication. A bind mount keeps the
