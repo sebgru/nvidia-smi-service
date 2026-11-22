@@ -44,7 +44,7 @@
             "extensions": [
                 // Python language support + Pylance type checker
                 "ms-python.python",
-                "ms-python.pylance",
+                "ms-python.vscode-pylance",
                 // Ruff: linter + formatter (matches CI)
                 "charliermarsh.ruff",
                 "github.vscode-github-actions",
